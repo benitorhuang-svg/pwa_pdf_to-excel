@@ -4,12 +4,12 @@ import WelcomePage from './pages/WelcomePage';
 import LoadingPage from './pages/LoadingPage';
 import ResultsPage from './pages/ResultsPage';
 import { AppScreen, InvoiceData, ParsingStatus } from './types';
-import { parsePdfFile } from './services/pdfParser';
 import { exportToExcel } from './utils/excelExport';
+import { ThemeProvider } from './hooks/useTheme';
 
 import { AnimatePresence, motion } from 'framer-motion';
 
-function App() {
+function AppContent() {
   const [screen, setScreen] = useState<AppScreen>('welcome');
   const [data, setData] = useState<InvoiceData[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -23,6 +23,9 @@ function App() {
   const handleFileSelect = async (file: File) => {
     setScreen('loading');
     try {
+      // Lazy load the heavy pdfParser only when needed
+      const { parsePdfFile } = await import('./services/pdfParser');
+      
       const result = await parsePdfFile(file, (current, total) => {
         setStatus({
           currentPage: current,
@@ -106,7 +109,9 @@ function App() {
       </AnimatePresence>
 
       {/* Copy Toast */}
-      <div style={{
+      <div 
+        aria-live="polite"
+        style={{
         position: 'fixed',
         bottom: '2rem',
         left: '50%',
@@ -125,6 +130,14 @@ function App() {
         已複製到剪貼簿 ✨
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

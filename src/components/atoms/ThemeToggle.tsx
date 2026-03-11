@@ -1,24 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { Sun, Moon } from 'lucide-react';
 
 export const ThemeToggle: React.FC = () => {
-  const [isLightMode, setIsLightMode] = useState(() => {
-    return localStorage.getItem('theme') === 'light';
-  });
-
-  useEffect(() => {
-    if (isLightMode) {
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('theme', 'light');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'dark');
-    }
-  }, [isLightMode]);
+  const { isLightMode, toggleTheme } = useTheme();
 
   return (
     <button 
-      onClick={() => setIsLightMode(!isLightMode)}
+      onClick={toggleTheme}
       style={{
         zIndex: 100,
         background: 'var(--card)',

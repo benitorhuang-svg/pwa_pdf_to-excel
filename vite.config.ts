@@ -15,6 +15,9 @@ export default defineConfig({
         short_name: '發票工具',
         description: '基於智慧識別技術的高效率發票數據處理系統',
         theme_color: '#6366f1',
+        background_color: '#0f172a',
+        display: 'standalone',
+        start_url: '/pwa_pdf_to-excel/',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -30,7 +33,7 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ]
       }

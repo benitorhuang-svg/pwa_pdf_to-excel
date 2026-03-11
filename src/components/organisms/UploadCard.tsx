@@ -80,7 +80,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onFileSelect }) => {
         position: 'relative',
         zIndex: 1
       }} />
-      <h3 style={{ margin: 0, fontSize: '1.4rem', color: 'white', fontWeight: 600, position: 'relative', zIndex: 1, letterSpacing: '0.5px' }}>上傳發票 PDF</h3>
+      <h3 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--text-main)', fontWeight: 600, position: 'relative', zIndex: 1, letterSpacing: '0.5px' }}>上傳發票 PDF</h3>
       <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.95rem', position: 'relative', zIndex: 1 }}>拖放檔案或點擊此處選取</p>
       
       <input 

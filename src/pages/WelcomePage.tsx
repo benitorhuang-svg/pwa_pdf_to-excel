@@ -10,7 +10,7 @@ interface WelcomePageProps {
 
 const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
   return (
-    <div style={{
+    <div className="welcome-container" style={{
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'stretch',
@@ -19,7 +19,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
       height: '100%',
       position: 'relative',
       overflow: 'hidden',
-      padding: '1.5rem 6rem',
+      padding: '1.5rem 6vw',
       gap: '3rem'
     }}>
       <div style={{
@@ -34,7 +34,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
       }} />
 
       {/* Left Column: Features */}
-      <div style={{
+      <div className="feature-column" style={{
         flex: '0 0 300px',
         display: 'flex',
         flexDirection: 'column',
@@ -52,13 +52,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '1rem'
+          gap: '1rem',
+          width: '100%'
         }}>
           {[
-            { icon: <ScanSearch size={22} />, text: '自動定位核心' },
-            { icon: <CalendarClock size={22} />, text: '西元日期轉換' },
-            { icon: <FolderTree size={22} />, text: '月份自動分類' },
-            { icon: <FileSpreadsheet size={22} />, text: '一鍵導出表格' }
+            { icon: <ScanSearch size={22} aria-label="搜尋" />, text: '自動定位核心' },
+            { icon: <CalendarClock size={22} aria-label="日曆" />, text: '西元日期轉換' },
+            { icon: <FolderTree size={22} aria-label="資料夾" />, text: '月份自動分類' },
+            { icon: <FileSpreadsheet size={22} aria-label="試算表" />, text: '一鍵導出表格' }
           ].map((feature, i) => (
             <div key={i} style={{ 
               display: 'flex', 
@@ -69,7 +70,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
               border: '1px solid var(--glass-border)',
               borderRadius: '100px',
               color: 'var(--text-main)',
-              boxShadow: '0 4px 6px var(--card)'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
               <span style={{ color: 'var(--primary-light)', display: 'flex' }}>
                 {feature.icon}
@@ -83,7 +84,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
       </div>
 
       {/* Right Column: Upload Area */}
-      <div style={{ 
+      <div className="upload-column" style={{ 
         flex: 1, 
         zIndex: 1, 
         display: 'flex',
@@ -92,6 +93,24 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
         <UploadCard onFileSelect={onFileSelect} />
       </div>
 
+      <style>{`
+        @media (max-width: 900px) {
+          .welcome-container {
+            flex-direction: column !important;
+            padding: 2rem !important;
+            overflow-y: auto !important;
+            gap: 2rem !important;
+          }
+          .feature-column {
+            flex: none !important;
+            width: 100% !important;
+            align-items: center !important;
+          }
+          .upload-column {
+            min-height: 400px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

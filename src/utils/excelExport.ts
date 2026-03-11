@@ -36,6 +36,10 @@ export function exportToExcel(data: InvoiceData[]) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "中國附醫");
     
-    const fileName = `中國附醫報表_${new Date().getFullYear()}${new Date().getMonth() + 1}${new Date().getDate()}.xlsx`;
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+
+    const fileName = `中國附醫報表_${dateStr}.xlsx`;
     XLSX.writeFile(wb, fileName);
 }

@@ -13,6 +13,8 @@ interface ResultsPageProps {
   onCopy: (text: string) => void;
 }
 
+import { DEFAULT_VENDOR } from '../config/vendorConfig';
+
 const ResultsPage: React.FC<ResultsPageProps> = ({ 
   data, 
   totalPages, 
@@ -52,9 +54,9 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
   const selectedSum = selectedData.reduce((acc, curr) => acc + curr.amount, 0);
 
   const generateCopyText = () => {
-    let text = `中國附醫 ${selectedMonth} 貨款\n`;
+    let text = `${DEFAULT_VENDOR.name} ${selectedMonth} 貨款\n`;
     selectedData.forEach(item => {
-      text += `${item.dn}\t${item.invoice} 中國附醫\t${item.date}\t${item.amount}\n`;
+      text += `${item.dn}\t${item.invoice} ${DEFAULT_VENDOR.suffix}\t${item.date}\t${item.amount}\n`;
     });
     return text;
   };
@@ -135,7 +137,7 @@ const ResultsPage: React.FC<ResultsPageProps> = ({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <div style={{ width: '4px', height: '1.25rem', background: 'var(--primary-light)', borderRadius: '4px' }} />
-              中國附醫
+              {DEFAULT_VENDOR.name}
             </div>
             {isVendorOpen ? <ChevronDown size={18} color="var(--text-muted)" /> : <ChevronRight size={18} color="var(--text-muted)" />}
           </button>
