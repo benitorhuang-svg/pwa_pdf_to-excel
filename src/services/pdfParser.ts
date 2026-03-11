@@ -1,33 +1,39 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { InvoiceData } from '../types';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Vite ?url 讓 worker 跟隨 npm 版本，永遠不會版本不匹配
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export async function parsePdfFile(
     file: File,
     onProgress: (page: number, total: number) => void
 ): Promise<{ data: InvoiceData[]; totalPages: number }> {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await pdfjsLib.getDocument({
+        data: arrayBuffer,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.5.207/cmaps/',
+        cMapPacked: true,
+    }).promise;
     const totalPages = pdf.numPages;
     const allData: InvoiceData[] = [];
-    let globalLastDN = "";
+    globalLastDN = "";
 
     for (let i = 1; i <= totalPages; i++) {
         onProgress(i, totalPages);
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const lines = reconstructLines(textContent.items as any[]);
+        // v5: items 混合了 TextItem 與 TextMarkedContent，只保留有 str 的 TextItem
+        const textItems = textContent.items.filter((item: any) => 'str' in item);
+        const lines = reconstructLines(textItems);
         const colMap = detectColumns(lines);
-        
-        const pageData = parsePageData(lines, colMap, globalLastDN);
-        allData.push(...pageData.data);
-        globalLastDN = pageData.lastDN;
+        parsePageData(lines, colMap, allData);
     }
 
     const uniqueData = Array.from(new Set(allData.map(item => JSON.stringify(item))))
-        .map(str => JSON.parse(str) as InvoiceData)
-        .sort((a, b) => a.date.localeCompare(b.date));
+        .map(str => JSON.parse(str) as InvoiceData);
+    
+    uniqueData.sort((a, b) => a.date.localeCompare(b.date));
 
     return { data: uniqueData, totalPages };
 }
@@ -51,8 +57,12 @@ function reconstructLines(items: any[]) {
 }
 
 function detectColumns(lines: any[][]) {
-    const map = { receipt: 50, amount: 410, invoice: 510 };
+    // v5 中文表頭亂碼，無法靠中文文字匹配
+    // 改用資料行結構：找到第一個 DN 開頭的行來推斷欄位位置
+    const map = { receipt: 67, amount: 580, invoice: 700 };
+    
     for (const line of lines) {
+        // 先嘗試中文匹配（如果 CMap 正確的話）
         const text = line.map(l => l.text).join("");
         if (text.includes("驗退收單號") && text.includes("發票號碼")) {
             line.forEach(item => {
@@ -60,35 +70,79 @@ function detectColumns(lines: any[][]) {
                 if (item.text.includes("付款金額")) map.amount = item.x;
                 if (item.text.includes("發票號碼")) map.invoice = item.x;
             });
+            return map;
+        }
+    }
+    
+    // v5 fallback: 用第一個 DN 行的結構來推斷
+    for (const line of lines) {
+        const dnItem = line.find(item => item.text.match(/^[A-Z]{2}\d{8}$/) && item.x < 200);
+        if (dnItem) {
+            map.receipt = dnItem.x;
+            // 在同一行找發票號碼 (格式: "金額 XX12345678")
+            const invCombined = line.find(item => item.text.match(/\d+\s+[A-Z]{2}\d{8}/));
+            if (invCombined) {
+                map.invoice = invCombined.x;
+            }
+            // 金額欄位通常在 x=580-600 附近
+            const amountItem = line.find(item => item.x > 500 && item.x < 650 && item.text.match(/^\d+$/));
+            if (amountItem) {
+                map.amount = amountItem.x;
+            }
             break;
         }
     }
     return map;
 }
 
-function parsePageData(lines: any[][], colMap: any, lastDN: string) {
-    const data: InvoiceData[] = [];
-    let currentLastDN = lastDN;
+let globalLastDN = "";
 
+function parsePageData(lines: any[][], colMap: any, allData: InvoiceData[]) {
     lines.forEach((line, idx) => {
+        // 偵測驗退收單號 (DN)
         const dnItem = line.find(item =>
             Math.abs(item.x - colMap.receipt) < 40 && item.text.match(/^[A-Z]{2}\d{8}$/)
         );
-        if (dnItem) currentLastDN = dnItem.text;
+        if (dnItem) globalLastDN = dnItem.text;
 
+        // v5: 發票號碼可能獨立出現，也可能被合併在 "金額 XX12345678" 中
+        let invNo = "";
+        let invItemX = 0;
+
+        // 策略 1: 獨立的發票號碼項目
         const invItem = line.find(item =>
-            item.x > (colMap.invoice - 30) && item.text.match(/^[A-Z]{2}\d{8}$/)
+            item.x > 500 && item.text.match(/^[A-Z]{2}\d{8}$/)
         );
-
         if (invItem) {
-            const invNo = invItem.text;
+            invNo = invItem.text;
+            invItemX = invItem.x;
+        }
+
+        // 策略 2: 合併在 "金額 XX12345678" 中 (v5 特有)
+        if (!invNo) {
+            const combinedItem = line.find(item => {
+                const match = item.text.match(/(\d+)\s+([A-Z]{2}\d{8})/);
+                return match && item.x > 500;
+            });
+            if (combinedItem) {
+                const match = combinedItem.text.match(/(\d+)\s+([A-Z]{2}\d{8})/);
+                if (match) {
+                    invNo = match[2];
+                    invItemX = combinedItem.x;
+                }
+            }
+        }
+
+        if (invNo) {
             let invDate = "-";
             let amount = 0;
 
-            for (let d = 1; d <= 2; d++) {
+            // 尋找日期：在後續行中找 1XXXXXX 格式 (民國日期)
+            // v5 中日期可能在 x=724 附近（比 v3 偏右）
+            for (let d = 1; d <= 3; d++) {
                 if (idx + d < lines.length) {
                     const dateItem = lines[idx + d].find(item =>
-                        Math.abs(item.x - invItem.x) < 60 && item.text.match(/^1\d{6}$/)
+                        item.text.match(/^1\d{6}$/)
                     );
                     if (dateItem) { 
                         invDate = convertRocToAd(dateItem.text); 
@@ -97,25 +151,43 @@ function parsePageData(lines: any[][], colMap: any, lastDN: string) {
                 }
             }
 
+            // 在同一行尋找金額
+            // 方法 1: 獨立的金額欄位 (x 大約在 580-600)
             const candidates = line.filter(item => {
                 const cleanText = item.text.replace(/,/g, '');
-                return item.x > (colMap.amount - 60) && item.x < (invItem.x - 10) && /^\d+(\.\d+)?$/.test(cleanText);
+                return item.x > 500 && item.x < 700 && /^\d+(\.\d+)?$/.test(cleanText) && parseFloat(cleanText) > 0;
             });
 
             if (candidates.length > 0) {
-                candidates.sort((a, b) => b.x - a.x);
-                const nonZero = candidates.find(c => parseFloat(c.text.replace(/,/g, '')) > 0);
-                const selectedItem = nonZero || candidates[0];
-                amount = parseFloat(selectedItem.text.replace(/,/g, ''));
-            } else {
+                // 找最接近金額欄位位置的非零項目
+                candidates.sort((a, b) => Math.abs(a.x - colMap.amount) - Math.abs(b.x - colMap.amount));
+                amount = parseFloat(candidates[0].text.replace(/,/g, ''));
+            }
+            
+            // 方法 2: 從合併文字 "金額 XX12345678" 中提取金額
+            if (amount === 0) {
+                const combinedItem = line.find(item => {
+                    const match = item.text.match(/^(\d+)\s+[A-Z]{2}\d{8}/);
+                    return match && item.x > 500;
+                });
+                if (combinedItem) {
+                    const match = combinedItem.text.match(/^(\d+)\s+[A-Z]{2}\d{8}/);
+                    if (match) {
+                        amount = parseFloat(match[1].replace(/,/g, ''));
+                    }
+                }
+            }
+
+            // 方法 3: fallback - 尋找應付金額
+            if (amount === 0) {
                 amount = findAmountFallback(lines, idx);
             }
 
-            data.push({ dn: currentLastDN || "-", invoice: invNo, date: invDate, amount });
+            if (invNo && amount > 0) {
+                allData.push({ dn: globalLastDN || "-", invoice: invNo, date: invDate, amount });
+            }
         }
     });
-
-    return { data, lastDN: currentLastDN };
 }
 
 function findAmountFallback(lines: any[][], currentIdx: number): number {

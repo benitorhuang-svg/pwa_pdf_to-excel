@@ -1,6 +1,8 @@
 import React from 'react';
-import { Badge } from '../components/atoms/Badge';
+// Badge import removed
 import { UploadCard } from '../components/organisms/UploadCard';
+import { ScanSearch, CalendarClock, FolderTree, FileSpreadsheet } from 'lucide-react';
+import { ThemeToggle } from '../components/atoms/ThemeToggle';
 
 interface WelcomePageProps {
   onFileSelect: (file: File) => void;
@@ -12,90 +14,87 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'stretch',
+      justifyContent: 'center',
       width: '100%',
-      height: '100%'
+      height: '100%',
+      position: 'relative',
+      overflow: 'hidden',
+      padding: '1.5rem 6rem',
+      gap: '3rem'
     }}>
       <div style={{
-        flex: 1.2,
-        padding: '4rem',
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '50vw',
+        height: '100%',
+        background: 'radial-gradient(ellipse at center left, rgba(99, 102, 241, 0.1), transparent 70%)',
+        pointerEvents: 'none',
+        zIndex: 0
+      }} />
+
+      {/* Left Column: Features */}
+      <div style={{
+        flex: '0 0 300px',
         display: 'flex',
         flexDirection: 'column',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        position: 'relative',
-        background: 'linear-gradient(to right, rgba(99, 102, 241, 0.05), transparent)'
+        zIndex: 1,
+        textAlign: 'left'
       }}>
-        <div style={{ position: 'absolute', top: '-100px', left: '-100px', width: '300px', height: '300px', background: 'var(--primary)', filter: 'blur(120px)', opacity: 0.15, borderRadius: '50%', pointerEvents: 'none' }}></div>
         
-        <Badge>v2.0 專業版現已上線</Badge>
-        
-        <div className="hero">
-          <h1 style={{
-            fontSize: '4rem',
-            margin: 0,
-            background: 'linear-gradient(to bottom right, #fff, #94a3b8)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: 800,
-            letterSpacing: '-2px',
-            lineHeight: 1.1
-          }}>
-            中國附醫<br />發票提取工具
-          </h1>
-          <p style={{
-            color: 'var(--text-muted)',
-            marginTop: '1.5rem',
-            fontSize: '1.25rem',
-            fontWeight: 400,
-            lineHeight: 1.6,
-            maxWidth: '500px'
-          }}>
-            基於智慧識別技術的高效率發票數據處理系統。專為複雜的內部報表流程打造，將繁瑣的人工登帳自動化。
-          </p>
+        <div style={{ marginBottom: '2.5rem', paddingLeft: '0.5rem' }}>
+          <ThemeToggle />
+        </div>
 
-          <div style={{
-            marginTop: '3rem',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '1.5rem'
-          }}>
-            {[
-              { icon: '🔍', text: '自動定位核心數據' },
-              { icon: '📅', text: '民國轉西元處理' },
-              { icon: '📊', text: '按月份自動分類' },
-              { icon: '📂', text: '一鍵導出 Excel' }
-            ].map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--primary-light)'
-                }}>{f.icon}</div>
-                <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)', fontWeight: 500 }}>{f.text}</div>
-              </div>
-            ))}
-          </div>
+        {/* Feature Highlights - Vertical Stack */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          {[
+            { icon: <ScanSearch size={22} />, text: '自動定位核心' },
+            { icon: <CalendarClock size={22} />, text: '西元日期轉換' },
+            { icon: <FolderTree size={22} />, text: '月份自動分類' },
+            { icon: <FileSpreadsheet size={22} />, text: '一鍵導出表格' }
+          ].map((feature, i) => (
+            <div key={i} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '1rem',
+              padding: '1rem 1.5rem',
+              background: 'var(--card)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '100px',
+              color: 'var(--text-main)',
+              boxShadow: '0 4px 6px var(--card)'
+            }}>
+              <span style={{ color: 'var(--primary-light)', display: 'flex' }}>
+                {feature.icon}
+              </span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 500, letterSpacing: '0.5px' }}>
+                {feature.text}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div style={{
-        flex: 1,
-        padding: '4rem',
+      {/* Right Column: Upload Area */}
+      <div style={{ 
+        flex: 1, 
+        zIndex: 1, 
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(255, 255, 255, 0.02)'
+        alignItems: 'stretch'
       }}>
-        <div style={{ position: 'absolute', bottom: '-100px', right: '-100px', width: '300px', height: '300px', background: 'var(--accent)', filter: 'blur(120px)', opacity: 0.15, borderRadius: '50%', pointerEvents: 'none' }}></div>
         <UploadCard onFileSelect={onFileSelect} />
       </div>
+
     </div>
   );
 };
 
 export default WelcomePage;
+

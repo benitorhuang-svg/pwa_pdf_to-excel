@@ -34,41 +34,54 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onFileSelect }) => {
       onClick={() => fileInputRef.current?.click()}
       style={{
         width: '100%',
-        maxWidth: '400px',
-        aspectRatio: '1',
-        border: `2px ${isDragOver ? 'solid var(--primary)' : 'dashed rgba(255, 255, 255, 0.1)'}`,
-        borderRadius: '40px',
+        height: '100%',
+        border: `2px ${isDragOver ? 'solid var(--primary)' : 'dashed var(--glass-border)'}`,
+        borderRadius: '24px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
         cursor: 'pointer',
-        background: 'rgba(255, 255, 255, 0.03)',
+        background: 'var(--card)',
         position: 'relative',
         overflow: 'hidden',
-        transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
-        transform: isDragOver ? 'scale(1.05)' : 'scale(1)',
+        transition: 'all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
+        transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
       }}
       className="upload-card"
     >
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(99, 102, 241, 0.15), transparent 40%)`,
+        background: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(99, 102, 241, 0.15), transparent 50%)`,
         opacity: isDragOver ? 1 : 0.8,
-        transition: 'opacity 0.5s'
+        transition: 'opacity 0.4s'
       }}></div>
 
-      <UploadCloud size={80} style={{
+      <h1 style={{
+        fontSize: '3rem',
+        margin: '0 0 3rem 0',
+        background: 'var(--title-grad)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        fontWeight: 800,
+        letterSpacing: '-1.5px',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        發票提取工具
+      </h1>
+
+      <UploadCloud size={64} style={{
         color: 'var(--primary-light)',
-        marginBottom: '2rem',
-        filter: 'drop-shadow(0 0 20px rgba(99, 102, 241, 0.3))',
+        marginBottom: '1.5rem',
+        filter: 'drop-shadow(0 0 16px rgba(99, 102, 241, 0.3))',
         position: 'relative',
         zIndex: 1
       }} />
-      <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'white', fontWeight: 700, position: 'relative', zIndex: 1 }}>上傳發票 PDF</h3>
-      <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '1rem', position: 'relative', zIndex: 1 }}>拖放檔案或點擊選取</p>
+      <h3 style={{ margin: 0, fontSize: '1.4rem', color: 'white', fontWeight: 600, position: 'relative', zIndex: 1, letterSpacing: '0.5px' }}>上傳發票 PDF</h3>
+      <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.95rem', position: 'relative', zIndex: 1 }}>拖放檔案或點擊此處選取</p>
       
       <input 
         type="file" 

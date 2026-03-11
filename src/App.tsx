@@ -7,6 +7,8 @@ import { AppScreen, InvoiceData, ParsingStatus } from './types';
 import { parsePdfFile } from './services/pdfParser';
 import { exportToExcel } from './utils/excelExport';
 
+import { AnimatePresence, motion } from 'framer-motion';
+
 function App() {
   const [screen, setScreen] = useState<AppScreen>('welcome');
   const [data, setData] = useState<InvoiceData[]>([]);
@@ -31,9 +33,9 @@ function App() {
       setData(result.data);
       setTotalPages(result.totalPages);
       setScreen('results');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('檔案解析出錯，請確認 PDF 格式或重新上傳。');
+      alert(`檔案解析出錯: ${err.message || '未知錯誤'}\n請確認 PDF 格式或重新上傳。`);
       setScreen('welcome');
     }
   };
@@ -54,26 +56,54 @@ function App() {
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-      {screen === 'welcome' && (
-        <WelcomePage onFileSelect={handleFileSelect} />
-      )}
-      
-      {screen === 'loading' && (
-        <LoadingPage 
-          progress={(status.currentPage / status.totalPages) * 100 || 0} 
-          statusText={status.text} 
-        />
-      )}
-      
-      {screen === 'results' && (
-        <ResultsPage 
-          data={data} 
-          totalPages={totalPages} 
-          onBack={() => setScreen('welcome')}
-          onExport={() => exportToExcel(data)}
-          onCopy={handleCopy}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {screen === 'welcome' && (
+          <motion.div
+            key="welcome"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
+            style={{ width: '100%', height: '100%' }}
+          >
+            <WelcomePage onFileSelect={handleFileSelect} />
+          </motion.div>
+        )}
+        
+        {screen === 'loading' && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ width: '100%', height: '100%' }}
+          >
+            <LoadingPage 
+              progress={(status.currentPage / status.totalPages) * 100 || 0} 
+              statusText={status.text} 
+            />
+          </motion.div>
+        )}
+        
+        {screen === 'results' && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.5, ease: "circOut" }}
+            style={{ width: '100%', height: '100%' }}
+          >
+            <ResultsPage 
+              data={data} 
+              totalPages={totalPages} 
+              onBack={() => setScreen('welcome')}
+              onExport={() => exportToExcel(data)}
+              onCopy={handleCopy}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Copy Toast */}
       <div style={{
