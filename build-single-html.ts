@@ -9,6 +9,7 @@ async function buildApp() {
     console.log('🔄 開始建置單一 HTML 檔案專案...');
     
     await build({
+      base: './',
       plugins: [react(), viteSingleFile()],
       build: {
         outDir: 'dist',
