@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中國附醫 PDF 發票提取工具 | 專業版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Noto+Sans+TC:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #a5b4fc;
+            --primary-dark: #4338ca;
+            --accent: #10b981;
+            --accent-light: #34d399;
+            --bg: #0f172a;
+            --card: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(15, 23, 42, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background: var(--bg);
+            /* 純 CSS 打造的高級感微光背景，完全不依賴外部圖檔 */
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 10%, rgba(129, 140, 248, 0.05) 0%, transparent 50%),
+                linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 2rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 玻璃擬態主容器 */
+        .main-app {
+            width: 100%;
+            max-width: 1200px;
+            height: calc(100vh - 4rem);
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 0;
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 螢幕切換邏輯 */
+        .screen {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .screen.active {
+            display: flex;
+            animation: screenIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes screenIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 歡迎頁面分欄佈局 */
+        #screen-welcome {
+            flex-direction: row;
+            align-items: stretch;
+        }
+
+        .welcome-left {
+            flex: 1.2;
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            background: linear-gradient(to right, rgba(99, 102, 241, 0.05), transparent);
+        }
+
+        .welcome-right {
+            flex: 1;
+            padding: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* 標籤樣式 */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 100px;
+            color: var(--primary-light);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            width: fit-content;
+        }
+
+        .badge span {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+            box-shadow: 0 0 12px var(--primary);
+            animation: pulse-bg 2s infinite;
+        }
+
+        @keyframes pulse-bg {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin: 0;
+            background: linear-gradient(to bottom right, #fff, #94a3b8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        .hero .desc {
+            color: var(--text-muted);
+            margin-top: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 400;
+            line-height: 1.6;
+            max-width: 500px;
+            text-align: left;
+        }
+
+        .features {
+            margin-top: 3rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-text {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* 上傳卡片重新設計 */
+        .upload-card {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.03);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .upload-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(99, 102, 241, 0.15), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .upload-card:hover::before {
+            opacity: 1;
+        }
+
+        .upload-card:hover {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.05);
+            transform: scale(1.02);
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.4);
+        }
+
+        .upload-card svg {
+            width: 80px;
+            height: 80px;
+            color: var(--primary-light);
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3));
+        }
+
+        .upload-card h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: white;
+            font-weight: 700;
+        }
+
+        .upload-card p {
+            margin-top: 0.5rem;
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* 螢光裝飾球 */
+        .glow-ball {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--primary);
+            filter: blur(120px);
+            opacity: 0.15;
+            border-radius: 50%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .ball-1 {
+            top: -100px;
+            left: -100px;
+        }
+
+        .ball-2 {
+            bottom: -100px;
+            right: -100px;
+            background: var(--accent);
+        }
+
+        /* 解析/進度頁面樣式修正 */
+        #screen-loading {
+            padding: 4rem;
+            justify-content: center;
+        }
+
+        .loader-content {
+            text-align: center;
+            padding: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 修改結果頁面為配合暗色系 */
+        #screen-results {
+            padding: 2rem;
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #screen-results.active {
+            display: flex;
+        }
+
+        .results-main-layout {
+            display: flex;
+            gap: 1.5rem;
+            flex: 1;
+            min-height: 0; /* 重要：允許子元素內滾動 */
+        }
+
+        .layout-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .layout-right {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: none;
+            border: 1px solid var(--glass-border);
+        }
+
+        .stat-value {
+            color: white;
+        }
+
+        .table-container {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary-light);
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* 解析/進度頁面樣式 */
+        .loader-content {
+            text-align: center;
+            padding: 5rem 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .progress-track {
+            height: 14px;
+            background: #e2e8f0;
+            border-radius: 7px;
+            overflow: hidden;
+            margin: 3rem 0;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #818cf8, #a78bfa);
+            background-size: 200% 100%;
+            animation: gradientMove 2s linear infinite;
+            width: 0%;
+            border-radius: 7px;
+            transition: width 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+
+        @keyframes gradientMove {
+            0% {
+                background-position: 100% 0%;
+            }
+
+            100% {
+                background-position: -100% 0%;
+            }
+        }
+
+        /* 結果頁面樣式 */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.75rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f1f5f9;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+            letter-spacing: -1px;
+        }
+
+        .table-container {
+            border-radius: 16px;
+            overflow-y: auto;
+            border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+            flex: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 1.25rem 1rem;
+            text-align: left;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 1.25rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.95rem;
+        }
+
+        tr:hover td {
+            background: #fbfcfe;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            gap: 0.75rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            width: fit-content;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid #e2e8f0;
+            color: var(--text-muted);
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #f8fafc;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .warn-tag {
+            background: #fee2e2;
+            color: #ef4444;
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Scrollbar styling */
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .rotating {
+            display: inline-block;
+            animation: spin 3s linear infinite;
+        }
+
+        /* 月份摘要區域樣式 */
+        .monthly-summary-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 0.5rem;
+        }
+
+        .month-block {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .month-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .month-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-copy {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary-light);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-copy:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .copy-toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 100px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+
+        .copy-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="main-app">
+        <!-- 歡迎頁面 -->
+        <div id="screen-welcome" class="screen active">
+            <div class="glow-ball ball-1"></div>
+            <div class="glow-ball ball-2"></div>
+
+            <div class="welcome-left">
+                <div class="badge"><span></span> v2.0 專業版現已上線</div>
+                <div class="hero">
+                    <h1>中國附醫<br>發票提取工具</h1>
+                    <p class="desc">基於智慧識別技術的高效率發票數據處理系統。專為複雜的內部報表流程打造，將繁瑣的人工登帳自動化。</p>
+
+                    <div class="features">
+                        <div class="feature-item">
+                            <div class="feature-icon">🔍</div>
+                            <div class="feature-text">自動定位核心數據</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon">📅</div>
+                            <div class="feature-text">民國轉西元處理</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-text">按月份自動分類</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon">📂</div>
+                            <div class="feature-text">一鍵導出 Excel</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="welcome-right">
+                <div class="upload-card" id="drop-zone">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <h3>上傳發票 PDF</h3>
+                    <p>拖放檔案或點擊選取</p>
+                    <input type="file" id="file-input" accept=".pdf">
+                </div>
+            </div>
+        </div>
+
+        <!-- 解析中頁面 -->
+        <div id="screen-loading" class="screen">
+            <div class="loader-content">
+                <div style="font-size: 4rem; margin-bottom: 2rem;" class="rotating">⚙️</div>
+                <h2 id="status-text" style="font-size: 2rem; margin: 0;">正在精煉資料...</h2>
+                <p class="desc">正在逐頁定位「驗退收單號」與「應付金額」</p>
+
+                <div class="progress-track">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 結果頁面 -->
+        <div id="screen-results" class="screen">
+            <div class="results-header" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <div class="header-stats-wrapper" style="display: flex; gap: 0.75rem; align-items: center; flex: 1; min-width: 400px;">
+                    <div class="stat-card-compact" style="background: rgba(255, 255, 255, 0.05); padding: 0.6rem 1.25rem; border-radius: 16px; border: 1px solid var(--glass-border); flex: 1; min-width: 100px;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">有效記錄</div>
+                        <div id="val-count" style="font-size: 1.25rem; font-weight: 700; color: white;">0</div>
+                    </div>
+                    <div class="stat-card-compact" style="background: rgba(255, 255, 255, 0.05); padding: 0.6rem 1.25rem; border-radius: 16px; border: 1px solid var(--glass-border); flex: 1.5; min-width: 120px;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">總付款總計</div>
+                        <div id="val-sum" style="font-size: 1.25rem; font-weight: 700; color: var(--primary-light);">$0</div>
+                    </div>
+                    <div class="stat-card-compact" style="background: rgba(255, 255, 255, 0.05); padding: 0.6rem 1.25rem; border-radius: 16px; border: 1px solid var(--glass-border); flex: 1; min-width: 100px;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">掃描頁數</div>
+                        <div id="val-pages" style="font-size: 1.25rem; font-weight: 700; color: white;">0</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <button class="btn btn-primary" id="btn-export">
+                        <svg style="width:20px; height:20px" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        匯出 Excel
+                    </button>
+                    <button class="btn btn-outline" id="btn-back">
+                        <svg style="width:18px" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                        返回
+                    </button>
+                    <!-- 隱藏的計量標籤供 JS 使用 (如果原本 JS 有引用) -->
+                    <span id="count-summary" style="display:none">0</span>
+                </div>
+            </div>
+            
+            <div class="results-main-layout">
+                <div class="layout-left">
+                    <div id="monthly-summary" class="monthly-summary-container"></div>
+                </div>
+                <div class="layout-right">
+                    <div class="table-container">
+                        <table style="font-size: 0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>驗退收單號</th>
+                                    <th>發票號碼</th>
+                                    <th>發票日期</th>
+                                    <th style="text-align:right">付款金額</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="copy-toast" class="copy-toast">已複製到剪貼簿 ✨</div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const btnBack = document.getElementById('btn-back');
+        const btnExport = document.getElementById('btn-export');
+
+        const screens = {
+            welcome: document.getElementById('screen-welcome'),
+            loading: document.getElementById('screen-loading'),
+            results: document.getElementById('screen-results')
+        };
+
+        const progressBar = document.getElementById('progress-bar');
+        const statusText = document.getElementById('status-text');
+        const tableBody = document.getElementById('table-body');
+
+        let allData = [];
+        let globalLastDN = "";
+
+        // UI Manager
+        function showScreen(name) {
+            Object.keys(screens).forEach(key => {
+                screens[key].classList.toggle('active', key === name);
+            });
+        }
+
+        // Actions
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+        btnBack.onclick = () => showScreen('welcome');
+
+        // Enhanced D&D
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
+            dropZone.addEventListener(eName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+            document.body.addEventListener(eName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eName => {
+            dropZone.addEventListener(eName, () => dropZone.classList.add('drag-over'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eName => {
+            dropZone.addEventListener(eName, () => dropZone.classList.remove('drag-over'), false);
+        });
+
+        // 動態滑動效果
+        dropZone.addEventListener('mousemove', (e) => {
+            const rect = dropZone.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            dropZone.style.setProperty('--mouse-x', `${x}%`);
+            dropZone.style.setProperty('--mouse-y', `${y}%`);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        }, false);
+
+        // Date Utils
+        function convertRocToAd(rocStr) {
+            if (!rocStr || rocStr === "-" || !rocStr.match(/^1\d{6}$/)) return rocStr;
+            const year = parseInt(rocStr.substring(0, 3)) + 1911;
+            const month = rocStr.substring(3, 5);
+            const day = rocStr.substring(5, 7);
+            return `${year}${month}${day}`;
+        }
+
+        async function handleFile(file) {
+            if (!file) return;
+            allData = [];
+            globalLastDN = "";
+            showScreen('loading');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const totalPages = pdf.numPages;
+
+                for (let i = 1; i <= totalPages; i++) {
+                    statusText.innerText = `正在讀取第 ${i} / ${totalPages} 頁...`;
+                    progressBar.style.width = `${(i / totalPages) * 100}%`;
+
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const lines = reconstructLines(textContent.items);
+                    const colMap = detectColumns(lines);
+                    parsePageData(lines, colMap);
+                }
+
+                displayResults(totalPages);
+            } catch (err) {
+                console.error(err);
+                alert("檔案解析出錯，請確認 PDF 格式或重新上傳。");
+                showScreen('welcome');
+            }
+        }
+
+        function reconstructLines(items) {
+            const lineMap = {};
+            items.forEach(item => {
+                const y = Math.round(item.transform[5]);
+                let foundY = Object.keys(lineMap).find(ey => Math.abs(ey - y) < 4);
+                let targetY = foundY || y;
+                if (!lineMap[targetY]) lineMap[targetY] = [];
+                lineMap[targetY].push({
+                    text: item.str.trim(),
+                    x: Math.round(item.transform[4]),
+                    w: item.width
+                });
+            });
+            return Object.keys(lineMap).sort((a, b) => b - a).map(y => lineMap[y].sort((a, b) => a.x - b.x));
+        }
+
+        function detectColumns(lines) {
+            let map = { receipt: 50, amount: 410, invoice: 510 };
+            for (let line of lines) {
+                const text = line.map(l => l.text).join("");
+                if (text.includes("驗退收單號") && text.includes("發票號碼")) {
+                    line.forEach(item => {
+                        if (item.text.includes("驗退收單號")) map.receipt = item.x;
+                        if (item.text.includes("付款金額")) map.amount = item.x;
+                        if (item.text.includes("發票號碼")) map.invoice = item.x;
+                    });
+                    break;
+                }
+            }
+            return map;
+        }
+
+        function parsePageData(lines, colMap) {
+            lines.forEach((line, idx) => {
+                const dnItem = line.find(item =>
+                    Math.abs(item.x - colMap.receipt) < 40 && item.text.match(/^[A-Z]{2}\d{8}$/)
+                );
+                if (dnItem) globalLastDN = dnItem.text;
+
+                const invItem = line.find(item =>
+                    item.x > (colMap.invoice - 30) && item.text.match(/^[A-Z]{2}\d{8}$/)
+                );
+
+                if (invItem) {
+                    const invNo = invItem.text;
+                    let invDate = "-";
+                    let amount = 0;
+
+                    for (let d = 1; d <= 2; d++) {
+                        if (idx + d < lines.length) {
+                            const dateItem = lines[idx + d].find(item =>
+                                Math.abs(item.x - invItem.x) < 60 && item.text.match(/^1\d{6}$/)
+                            );
+                            if (dateItem) { invDate = convertRocToAd(dateItem.text); break; }
+                        }
+                    }
+
+                    let candidates = line.filter(item => {
+                        const cleanText = item.text.replace(/,/g, '');
+                        return item.x > (colMap.amount - 60) && item.x < (invItem.x - 10) && /^\d+(\.\d+)?$/.test(cleanText);
+                    });
+
+                    if (candidates.length > 0) {
+                        candidates.sort((a, b) => b.x - a.x);
+                        let nonZero = candidates.find(c => parseFloat(c.text.replace(/,/g, '')) > 0);
+                        let selectedItem = nonZero || candidates[0];
+                        amount = parseFloat(selectedItem.text.replace(/,/g, ''));
+                    } else {
+                        amount = findAmountFallback(lines, idx);
+                    }
+
+                    allData.push({ dn: globalLastDN || "-", invoice: invNo, date: invDate, amount: amount });
+                }
+            });
+        }
+
+        function findAmountFallback(lines, currentIdx) {
+            for (let i = currentIdx; i < Math.min(lines.length, currentIdx + 5); i++) {
+                const text = lines[i].map(l => l.text).join("");
+                if (text.includes("應付金額")) {
+                    const match = text.match(/應付金額:?\s*([\d,.]+)/);
+                    if (match) return parseFloat(match[1].replace(/,/g, ''));
+                }
+            }
+            return 0;
+        }
+
+        function displayResults(totalPages) {
+            showScreen('results');
+            tableBody.innerHTML = "";
+            let totalSum = 0;
+
+            const uniqueData = Array.from(new Set(allData.map(JSON.stringify))).map(JSON.parse);
+            uniqueData.sort((a, b) => a.date.localeCompare(b.date));
+
+            uniqueData.forEach(item => {
+                totalSum += item.amount;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-family: monospace; font-weight: 500;">${item.dn}</td>
+                    <td><strong>${item.invoice}</strong></td>
+                    <td style="color: var(--text-muted)">${item.date === "-" ? '<span class="warn-tag">未偵測日期</span>' : item.date}</td>
+                    <td style="text-align:right; font-weight: 700; color: var(--primary-dark);">${item.amount.toLocaleString()}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.getElementById('val-count').innerText = uniqueData.length;
+            document.getElementById('count-summary').innerText = uniqueData.length;
+            document.getElementById('val-sum').innerText = `$${totalSum.toLocaleString()}`;
+            document.getElementById('val-pages').innerText = totalPages;
+
+            // 處理月份摘要顯示
+            renderMonthlySummary(uniqueData);
+
+            btnExport.onclick = () => exportToExcel(uniqueData);
+        }
+
+        function renderMonthlySummary(data) {
+            const container = document.getElementById('monthly-summary');
+            container.innerHTML = "";
+
+            const groups = {};
+            data.forEach(item => {
+                const month = item.date !== "-" ? item.date.substring(4, 6) : "未知";
+                if (!groups[month]) groups[month] = [];
+                groups[month].push(item);
+            });
+
+            const sortedMonths = Object.keys(groups).sort();
+
+            sortedMonths.forEach(month => {
+                const block = document.createElement('div');
+                block.className = 'month-block';
+
+                let copyText = `中國附醫 ${month}月 貨款\n`;
+                groups[month].forEach(item => {
+                    copyText += `${item.dn}\t${item.invoice} 中國附醫\t${item.date}\t${item.amount}\n`;
+                });
+
+                block.innerHTML = `
+                    <div class="month-header">
+                        <div class="month-title">📅 ${month}月份發票明細</div>
+                        <button class="btn-copy" onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)">
+                            <svg style="width:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                            複製報表內容
+                        </button>
+                    </div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+                        已整理 ${groups[month].length} 筆資料，點擊上方按鈕可直接貼上至 Excel。
+                    </div>
+                `;
+                container.appendChild(block);
+            });
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const toast = document.getElementById('copy-toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function exportToExcel(data) {
+            data.sort((a, b) => a.date.localeCompare(b.date));
+            const groups = {};
+            data.forEach(item => {
+                const month = item.date !== "-" ? item.date.substring(4, 6) : "未知";
+                if (!groups[month]) groups[month] = [];
+                groups[month].push(item);
+            });
+
+            const aoa = [["驗退收單號", "發票號碼", "發票日期", "付款金額"]];
+            const sortedMonths = Object.keys(groups).sort();
+
+            sortedMonths.forEach((month, idx) => {
+                aoa.push([`中國附醫 ${month}月 貨款`, "", "", ""]);
+                groups[month].forEach(item => {
+                    aoa.push([item.dn, item.invoice + " 中國附醫", item.date, item.amount]);
+                });
+                if (idx < sortedMonths.length - 1) aoa.push(["", "", "", ""]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: 3 });
+                if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') ws[cellAddress].z = '#,##0';
+            }
+
+            ws['!cols'] = [{ wch: 20 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "中國附醫");
+            XLSX.writeFile(wb, `中國附醫報表_${new Date().getFullYear()}${new Date().getMonth() + 1}${new Date().getDate()}.xlsx`);
+        }
+    </script>
+</body>
+
+</html>
