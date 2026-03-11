@@ -44,7 +44,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onFileSelect }) => {
         textAlign: 'left'
       }}>
         
-        <div style={{ marginBottom: '2.5rem', paddingLeft: '0.5rem' }}>
+        <div style={{ marginBottom: '2.5rem', paddingLeft: '6.5rem', transition: 'padding 0.3s ease' }}>
           <ThemeToggle />
         </div>
 
