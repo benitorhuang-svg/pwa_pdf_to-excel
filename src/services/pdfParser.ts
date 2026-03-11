@@ -107,7 +107,6 @@ function parsePageData(lines: any[][], colMap: any, allData: InvoiceData[]) {
 
         // v5: 發票號碼可能獨立出現，也可能被合併在 "金額 XX12345678" 中
         let invNo = "";
-        let invItemX = 0;
 
         // 策略 1: 獨立的發票號碼項目
         const invItem = line.find(item =>
@@ -115,7 +114,6 @@ function parsePageData(lines: any[][], colMap: any, allData: InvoiceData[]) {
         );
         if (invItem) {
             invNo = invItem.text;
-            invItemX = invItem.x;
         }
 
         // 策略 2: 合併在 "金額 XX12345678" 中 (v5 特有)
@@ -128,7 +126,6 @@ function parsePageData(lines: any[][], colMap: any, allData: InvoiceData[]) {
                 const match = combinedItem.text.match(/(\d+)\s+([A-Z]{2}\d{8})/);
                 if (match) {
                     invNo = match[2];
-                    invItemX = combinedItem.x;
                 }
             }
         }
