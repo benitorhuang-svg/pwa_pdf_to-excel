@@ -6,8 +6,8 @@ import ResultsPage from './pages/ResultsPage';
 import { AppScreen, InvoiceData, ParsingStatus } from './types';
 import { exportToExcel } from './utils/excelExport';
 import { ThemeProvider } from './hooks/useTheme';
-
 import { AnimatePresence, motion } from 'framer-motion';
+import { sortInvoiceData } from './utils/dataProcessor';
 
 function AppContent() {
   const [screen, setScreen] = useState<AppScreen>('welcome');
@@ -20,21 +20,34 @@ function AppContent() {
   });
   const [showToast, setShowToast] = useState(false);
 
-  const handleFileSelect = async (file: File) => {
+  const handleFilesSelect = async (files: File[]) => {
     setScreen('loading');
     try {
-      // Lazy load the heavy pdfParser only when needed
       const { parsePdfFile } = await import('./services/pdfParser');
       
-      const result = await parsePdfFile(file, (current, total) => {
-        setStatus({
-          currentPage: current,
-          totalPages: total,
-          text: `正在讀取第 ${current} / ${total} 頁...`
+      let allData: InvoiceData[] = [];
+      let totalPages = 0;
+
+      for (let idx = 0; idx < files.length; idx++) {
+        const file = files[idx];
+        const result = await parsePdfFile(file, (current, total) => {
+          setStatus({
+            currentPage: current,
+            totalPages: total,
+            text: `正在處理第 ${idx + 1} / ${files.length} 檔：${file.name} (頁 ${current} / ${total})`
+          });
         });
-      });
-      setData(result.data);
-      setTotalPages(result.totalPages);
+        allData = allData.concat(result.data);
+        totalPages += result.totalPages;
+      }
+
+      const uniqueData = Array.from(new Set(allData.map(item => JSON.stringify(item))))
+        .map(str => JSON.parse(str) as InvoiceData);
+
+      const sortedData = sortInvoiceData(uniqueData);
+
+      setData(sortedData);
+      setTotalPages(totalPages);
       setScreen('results');
     } catch (err: any) {
       console.error(err);
@@ -69,7 +82,7 @@ function AppContent() {
             transition={{ duration: 0.4 }}
             style={{ width: '100%', height: '100%' }}
           >
-            <WelcomePage onFileSelect={handleFileSelect} />
+            <WelcomePage onFilesSelect={handleFilesSelect} />
           </motion.div>
         )}
         

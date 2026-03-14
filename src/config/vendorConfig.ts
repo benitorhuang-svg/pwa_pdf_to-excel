@@ -11,6 +11,12 @@ export const VENDORS: Record<string, VendorConfig> = {
     name: '中國附醫',
     suffix: '中國附醫',
     sheetName: '中國附醫'
+  },
+  vgh: {
+    id: 'vgh',
+    name: '童綜合',
+    suffix: '童綜合',
+    sheetName: '童綜合'
   }
 };
 

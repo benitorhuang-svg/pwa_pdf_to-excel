@@ -2,10 +2,10 @@ import React, { useRef, useState } from 'react';
 import { UploadCloud } from 'lucide-react';
 
 interface UploadCardProps {
-  onFileSelect: (file: File) => void;
+  onFilesAdd: (files: File[]) => void;
 }
 
-export const UploadCard: React.FC<UploadCardProps> = ({ onFileSelect }) => {
+export const UploadCard: React.FC<UploadCardProps> = ({ onFilesAdd }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const [isDragOver, setIsDragOver] = useState(false);
@@ -21,7 +21,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onFileSelect }) => {
     e.preventDefault();
     setIsDragOver(false);
     if (e.dataTransfer.files.length > 0) {
-      onFileSelect(e.dataTransfer.files[0]);
+      onFilesAdd(Array.from(e.dataTransfer.files));
     }
   };
 
@@ -86,8 +86,9 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onFileSelect }) => {
       <input 
         type="file" 
         ref={fileInputRef} 
-        onChange={(e) => e.target.files && onFileSelect(e.target.files[0])}
+        onChange={(e) => e.target.files && onFilesAdd(Array.from(e.target.files))}
         accept=".pdf" 
+        multiple
         style={{ display: 'none' }} 
       />
     </div>

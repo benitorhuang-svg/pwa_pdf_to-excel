@@ -25,3 +25,6 @@ dist-ssr
 
 # Backup
 backup/
+
+# Test Data
+test_data/

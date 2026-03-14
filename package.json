@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build:html": "tsx build-single-html.ts"
+    "build:html": "tsx bundle.ts"
   },
   "dependencies": {
     "@types/pdfjs-dist": "^2.10.377",
